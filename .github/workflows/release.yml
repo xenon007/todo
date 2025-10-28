@@ -42,7 +42,7 @@ jobs:
             BINARY_NAME+=".exe"
           fi
           go mod tidy
-          go build -o "$BINARY_NAME" ./cmd/todo
+          go build -o "$BINARY_NAME" ./cmd/todo/main.go
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2

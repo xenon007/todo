@@ -1,0 +1,54 @@
+name: Build and Release Binaries
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+            # Для Windows важно добавить расширение .exe к имени бинарника
+            artifact_name: todo-windows-amd64.exe
+            # Запуск на Windows раннере для нативного билда
+            runs_on_os: windows-latest
+
+    runs-on: ${{ matrix.runs_on_os || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Можно изменить версию Go
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+        run: |
+          BINARY_NAME="todo-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY_NAME+=".exe"
+          fi
+          go mod tidy
+          go build -o "$BINARY_NAME" .
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            todo-${{ matrix.goos }}-${{ matrix.goarch }}*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
